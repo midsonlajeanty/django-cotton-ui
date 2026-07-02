@@ -193,7 +193,7 @@ By default the working theme is saved to localStorage so it survives navigation 
                             <span class="text-xs font-medium text-zinc-600 dark:text-zinc-400">Radius</span>
                             <div class="relative">
                                 <select @change="radiusBox = $event.target.value; apply()" class="{{ select_class }}">
-                                    <template x-for="r in radii" :key="r[0]"><option :value="r[1]" :selected="radiusBox === r[1]" x-text="r[0]"></option></template>
+                                    <template x-for="r in radiiBox" :key="r[0]"><option :value="r[1]" :selected="radiusBox === r[1]" x-text="r[0]"></option></template>
                                 </select>
                                 <svg class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 size-3 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
                             </div>
@@ -244,9 +244,9 @@ By default the working theme is saved to localStorage so it survives navigation 
                                 class="ui-range max-w-[7.5rem]" />
                         </div>
 
-                        {# Dark depth picks which ink shade drives the dark-mode page bg.
+                        {% comment %}Dark depth picks which ink shade drives the dark-mode page bg.
                            Deep (ink-950) is the kit default; standard (ink-900) is the prior look;
-                           soft (ink-800) is a more pastel dark. The derived surface lifts off whichever is chosen. #}
+                           soft (ink-800) is a more pastel dark. The derived surface lifts off whichever is chosen.{% endcomment %}
                         <div class="flex items-center justify-between gap-3">
                             <span class="text-xs font-medium text-zinc-600 dark:text-zinc-400">Dark depth</span>
                             <div class="relative">
@@ -287,6 +287,8 @@ By default the working theme is saved to localStorage so it survives navigation 
         Alpine.data('cottonThemeBuilderWidget', (opts = {}) => ({
             shades: [50,100,200,300,400,500,600,700,800,900,950],
             radii: [['none','0'],['sm','0.25rem'],['md','0.375rem'],['lg','0.5rem'],['xl','0.75rem'],['2xl','1rem']],
+            // Structural surfaces take one rounder step than controls.
+            get radiiBox() { return [...this.radii, ['3xl','1.5rem']]; },
             shadows: [['none','none'],['sm','0 1px 2px 0 rgb(0 0 0 / 0.05)'],['md','0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)'],['lg','0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)']],
             rings: [['0','0px'],['1','1px'],['2','2px'],['4','4px']],
             // Dark depth: which ink shade drives --color-bg in dark mode. Deep is the kit default.
