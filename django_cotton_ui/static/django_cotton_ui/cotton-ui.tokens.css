@@ -100,9 +100,9 @@
         --shadow-input: 0 1px 2px 0 rgb(0 0 0 / 0.05);
         --shadow-box: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 
-        --focus-ring-width: 2px;
+        --focus-ring-width: 3px;
         --focus-ring-offset: 0px;
-        --focus-ring-color: color-mix(in oklab, var(--color-accent) 50%, white);
+        --focus-ring-color: color-mix(in oklab, var(--color-accent) 30%, transparent);
         --focus-ring-offset-color: #ffffff;
     }
 
@@ -120,17 +120,21 @@
     }
 }
 
-/* Unified focus indicator. Add `focus-ring` to any interactive element for a flush,
-   translucent accent ring on keyboard focus. Uses `outline` so it follows border-radius,
-   never clashes with the element's box-shadow, and is not clipped by overflow. Themeable
-   via --focus-ring-width / --focus-ring-color / --focus-ring-offset (see the theme builder). */
+/* Unified focus indicator. Add `focus-ring` to any interactive element for a crisp accent
+   border plus a faded, translucent accent ring on focus. Uses `outline` for the ring so it
+   follows border-radius, never clashes with the element's box-shadow, and is not clipped by
+   overflow. The accent border-color is a no-op on borderless elements (button/checkbox labels),
+   so it only shows on bordered controls (inputs, selects, textareas). Themeable via
+   --focus-ring-width / --focus-ring-color / --focus-ring-offset (see the theme builder). */
 @utility focus-ring {
-    /* Solid 2px accent ring just outside the resting border, on keyboard focus.
-       The always-present transparent outline avoids a colour flash and suppresses the
-       UA default; only the colour changes on focus-visible. */
+    /* The always-present transparent outline avoids a colour flash and suppresses the
+       UA default; only the colour changes on focus. */
     outline: var(--focus-ring-width) solid transparent;
     outline-offset: var(--focus-ring-offset);
-    &:focus-visible { outline-color: var(--focus-ring-color); }
+    &:focus-visible {
+        outline-color: var(--focus-ring-color);
+        border-color: var(--color-accent);
+    }
 }
 
 /* Range slider, themed to match inputs: a visible filled track and a neutral surface

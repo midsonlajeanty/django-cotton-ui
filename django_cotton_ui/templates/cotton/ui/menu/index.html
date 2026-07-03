@@ -10,6 +10,7 @@
 <div
     x-data="{
         open: false,
+        focused: false,
         search: '',
         selected: '{{ value }}' || null,
         selectedLabel: '',
@@ -52,6 +53,11 @@
             this._cleanupReposition = window.CottonUI.watchReposition(() => {
                 if (this.open) this.position();
             });
+
+            // While searching, keep the top-most result highlighted so Enter selects it.
+            this.$watch('search', () => {
+                this.highlightedIndex = this.filteredOptions.length ? 0 : -1;
+            });
         },
 
         destroy() {
@@ -91,6 +97,8 @@
             this.open = false;
             this.search = '';
             this.$dispatch('select-change', { value: option.value, label: option.label });
+            // Return focus to the trigger after picking, so keyboard flow continues from the select.
+            this.$refs.trigger?.focus();
         },
 
         toggle() {
@@ -102,8 +110,10 @@
                         // Start keyboard navigation at the current selection (-1 = none highlighted).
                         this.highlightedIndex = this.filteredOptions.findIndex(o => o.value === this.selected);
                         // Focus so arrow keys reach the content's keydown handlers: the search
-                        // input if there is one, otherwise the content panel itself.
-                        const searchInput = this.$el.querySelector('[data-select-search]');
+                        // input if there is one, otherwise the content panel itself. Query from
+                        // $refs.content, not $el: toggle() is invoked from the trigger's @click,
+                        // so $el is the trigger button here, not the menu root.
+                        const searchInput = this.$refs.content?.querySelector('[data-select-search]');
                         if (searchInput) searchInput.focus();
                         else this.$refs.content?.focus();
                     });
@@ -111,9 +121,17 @@
             }
         },
 
-        close() {
+        close(returnFocus = false) {
             this.open = false;
             this.search = '';
+            // Escape returns focus to the trigger; click-outside lets focus follow the click.
+            if (returnFocus) this.$refs.trigger?.focus();
+        },
+
+        searchEscape() {
+            // In the search box, Escape clears a non-empty query first; a second Escape (empty) closes.
+            if (this.search.length) this.search = '';
+            else this.close(true);
         },
 
         highlightNext() {
@@ -143,7 +161,7 @@
         }
     }"
     @click.outside="close()"
-    @keydown.escape.window="close()"
+    @keydown.escape.window="open && close(true)"
     {{ attrs }}
     class="relative w-full"
 >
