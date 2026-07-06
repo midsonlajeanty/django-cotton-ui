@@ -44,7 +44,7 @@
                 {% if accent %}
                 classes.push('border-accent', 'bg-accent/5');
                 {% else %}
-                classes.push('border-[var(--color-muted,currentColor)]', 'bg-[color-mix(in_oklab,var(--color-muted,currentColor)_5%,transparent)]');
+                classes.push('border-[var(--color-accent-muted,currentColor)]', 'bg-[color-mix(in_oklab,var(--color-accent-muted,currentColor)_5%,transparent)]');
                 {% endif %}
             } else {
                 classes.push('border-ink-200', 'dark:border-ink-700');
@@ -77,7 +77,7 @@
                      {% if accent %}
                      'border-accent bg-accent': isChecked('{{ value }}'),
                      {% else %}
-                     'border-[var(--color-muted,currentColor)] bg-[var(--color-muted,currentColor)]': isChecked('{{ value }}'),
+                     'border-[var(--color-accent-muted,currentColor)] bg-[var(--color-accent-muted,currentColor)]': isChecked('{{ value }}'),
                      {% endif %}
                      'border-ink-300 dark:border-ink-600': !isChecked('{{ value }}')
                  }">

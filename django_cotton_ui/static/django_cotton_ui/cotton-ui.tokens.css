@@ -95,7 +95,8 @@
         --color-surface: color-mix(in oklab, var(--color-bg), white var(--surface-level));
         --color-input-bg: transparent;          /* form fields: border-defined in light; see .dark for the lift */
         --color-box-border: var(--color-ink-200);  /* border for box-role surfaces (cards, dialogs, menus); set transparent for a shadow-only look. NOT inputs (see --radius-control). */
-        --color-muted: var(--color-ink-900);    /* the off-accent fill: components with :accent=false use ink here, so they re-tone with the Ink control */
+        --color-accent-muted: var(--color-ink-900);    /* the off-accent fill: components with :accent=false use ink here, so they re-tone with the Ink control */
+        --color-muted: var(--color-ink-500);    /* secondary text (text-muted): meta lines, descriptions, timestamps; a step lighter on dark for contrast */
 
         --shadow-input: 0 1px 2px 0 rgb(0 0 0 / 0.05);
         --shadow-box: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -113,7 +114,8 @@
         --color-bg: var(--color-ink-950);  /* override to ink-900 for a softer dark, ink-800 for soft */
         --surface-level: 6%;  /* subtle lift off the dark page */
         --color-box-border: var(--color-ink-700);
-        --color-muted: var(--color-ink-100);
+        --color-accent-muted: var(--color-ink-100);
+        --color-muted: var(--color-ink-400);
         /* Inputs lift off any surface (page or card) via a translucent lighten. */
         --color-input-bg: color-mix(in oklab, white 4%, transparent);
         --focus-ring-offset-color: #18181b; /* zinc-900 */
