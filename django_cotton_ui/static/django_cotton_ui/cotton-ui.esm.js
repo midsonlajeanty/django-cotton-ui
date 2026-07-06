@@ -3235,7 +3235,7 @@ var radio_default = (name, initialValue = null) => ({
     } else if (variant === "cards") {
       classes.push("flex", "flex-1", "gap-4", "rounded-box", "border-2", "p-4", "transition-[background-color]");
       if (selected) {
-        classes.push(...accent ? ["border-accent", "bg-accent/5"] : ["border-[var(--color-muted,currentColor)]", "bg-[color-mix(in_oklab,var(--color-muted,currentColor)_5%,transparent)]"]);
+        classes.push(...accent ? ["border-accent", "bg-accent/5"] : ["border-[var(--color-accent-muted,currentColor)]", "bg-[color-mix(in_oklab,var(--color-accent-muted,currentColor)_5%,transparent)]"]);
       } else {
         classes.push("border-zinc-200", "dark:border-zinc-700");
       }

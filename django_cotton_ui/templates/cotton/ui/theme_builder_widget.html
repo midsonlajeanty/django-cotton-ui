@@ -328,18 +328,24 @@ By default the working theme is saved to localStorage so it survives navigation 
             init() {
                 this.panelOpen = !!opts.open;
                 this.isDark = document.documentElement.classList.contains('dark');
+                let restored = false;
                 if (this.persist) {
-                    this.load();  // may restore panelOpen + tokens from a previous page
+                    restored = this.load();  // may restore panelOpen + tokens from a previous page
                     // Open/close is toggled directly (not via apply), so persist it on change.
                     this.$watch('panelOpen', () => this.save());
                 }
                 // Re-apply when the site's appearance toggle flips the <html> class.
                 this._observer = new MutationObserver(() => {
                     const dark = document.documentElement.classList.contains('dark');
-                    if (dark !== this.isDark) { this.isDark = dark; this.apply(); }
+                    if (dark !== this.isDark) { this.isDark = dark; if (this._active) this.apply(); }
                 });
                 this._observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-                this.apply();
+                // An untouched widget must be a NO-OP: the page keeps the app's own
+                // stylesheet theme until the user interacts (or a saved working theme
+                // exists). Auto-applying the kit defaults here silently re-themed every
+                // dev page to teal/zinc while prod (no widget) showed the real theme.
+                this._active = restored;
+                if (restored) this.apply();
             },
 
             destroy() { if (this._observer) this._observer.disconnect(); },
@@ -347,6 +353,7 @@ By default the working theme is saved to localStorage so it survives navigation 
             // Vars are written to <html> so the whole page re-themes; saved to localStorage (when
             // persist is on) at the end so the theme carries across navigation.
             apply() {
+                this._active = true;
                 const el = document.documentElement;
                 const a = this._accentValues(this.isDark);
                 if (a) {
@@ -399,7 +406,9 @@ By default the working theme is saved to localStorage so it survives navigation 
                     const data = JSON.parse(raw);
                     if (!data || data.v !== this.persistVersion) return;  // ignore an incompatible/old blob
                     this.persistedKeys.forEach((k) => { if (k in data) this[k] = data[k]; });
+                    return true;
                 } catch (e) { /* storage unavailable / malformed — fall back to defaults */ }
+                return false;
             },
 
             save() {
@@ -458,7 +467,22 @@ By default the working theme is saved to localStorage so it survives navigation 
                 return L > 0.45 ? '#18181b' : '#ffffff';
             },
 
-            reset() { Object.assign(this, this.defaults); this.apply(); },
+            reset() {
+                // Restore the page to the app's own stylesheet theme: state back to
+                // defaults, every inline override removed, saved blob dropped. (The old
+                // reset APPLIED the kit defaults — on an app with its own theme that
+                // meant reset == re-theme to teal/zinc.)
+                Object.assign(this, this.defaults);
+                const el = document.documentElement;
+                ['--color-accent', '--color-accent-content', '--color-accent-foreground',
+                 '--color-bg', '--color-surface', '--color-card-border',
+                 '--radius-control', '--radius-button', '--radius-box',
+                 '--focus-ring-width', '--shadow-input', '--shadow-box'
+                ].forEach((v) => el.style.removeProperty(v));
+                this.shades.forEach((sh) => el.style.removeProperty('--color-ink-' + sh));
+                this._active = false;
+                try { localStorage.removeItem(this.storageKey); } catch (e) { /* ignore */ }
+            },
 
             // True when any token differs from the kit defaults — drives the collapsed 'reset' link.
             get isModified() { return Object.keys(this.defaults).some((k) => this[k] !== this.defaults[k]); },
