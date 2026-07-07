@@ -313,6 +313,13 @@ By default the working theme is saved to localStorage so it survives navigation 
 
             isDark: false,
             panelOpen: false,
+            // Scoped apply: only token groups the user actually changed are
+            // written to the page. _dirty marks state keys that have ever
+            // differed from their value at the previous apply/init; _last is
+            // that snapshot. Persisted, so a restored working theme stays
+            // scoped too.
+            _dirty: {},
+            _last: null,
             showCss: false,
             copied: false,
             _observer: null,
@@ -322,7 +329,7 @@ By default the working theme is saved to localStorage so it survives navigation 
             // saved shape changes (older blobs are then ignored, falling back to defaults).
             persist: opts.persist !== false,
             storageKey: opts.storageKey || 'cotton-ui:theme-builder',
-            persistVersion: 1,
+            persistVersion: 2,
             persistedKeys: ['accent', 'customAccent', 'gray', 'radius', 'buttonRadius', 'radiusBox', 'focusRing', 'inputShadow', 'boxShadow', 'borders', 'surfaceLight', 'surfaceDark', 'darkDepth', 'panelOpen'],
 
             init() {
@@ -344,6 +351,7 @@ By default the working theme is saved to localStorage so it survives navigation 
                 // stylesheet theme until the user interacts (or a saved working theme
                 // exists). Auto-applying the kit defaults here silently re-themed every
                 // dev page to teal/zinc while prod (no widget) showed the real theme.
+                this._snapshot();
                 this._active = restored;
                 if (restored) this.apply();
             },
@@ -352,49 +360,72 @@ By default the working theme is saved to localStorage so it survives navigation 
 
             // Vars are written to <html> so the whole page re-themes; saved to localStorage (when
             // persist is on) at the end so the theme carries across navigation.
+            _snapshot() {
+                this._last = {};
+                this.persistedKeys.forEach((k) => { this._last[k] = this[k]; });
+            },
+
+            // SCOPED apply: mark whatever changed since the last apply as dirty,
+            // then write only the dirty token groups. Untouched groups keep the
+            // app's own stylesheet values — changing the radius must never
+            // re-theme the accent to the kit default.
             apply() {
                 this._active = true;
+                if (this._last) {
+                    this.persistedKeys.forEach((k) => {
+                        if (this[k] !== this._last[k]) this._dirty[k] = true;
+                    });
+                }
+                this._snapshot();
                 const el = document.documentElement;
-                const a = this._accentValues(this.isDark);
-                if (a) {
-                    el.style.setProperty('--color-accent', a.accent);
-                    el.style.setProperty('--color-accent-content', a.content);
-                    el.style.setProperty('--color-accent-foreground', a.fg);
+                const dirty = (keys) => keys.some((k) => this._dirty[k]);
+
+                if (dirty(['accent', 'customAccent'])) {
+                    const a = this._accentValues(this.isDark);
+                    if (a) {
+                        el.style.setProperty('--color-accent', a.accent);
+                        el.style.setProperty('--color-accent-content', a.content);
+                        el.style.setProperty('--color-accent-foreground', a.fg);
+                    }
                 }
                 // Gray base: re-tone the kit's own neutral (--color-ink-*) to the chosen gray, and
                 // drive --color-bg so the page (and the derived surface below) follows. 'zinc' is the
                 // default look, so we just clear the overrides and let --color-ink-* fall back to its
                 // zinc-valued default. A consumer's own zinc-* usage is never touched.
-                this.shades.forEach((s) => el.style.removeProperty('--color-ink-' + s));
-                // Dark depth picks which ink shade the page bg sits on in dark mode (800/900/950).
-                // Light mode is always ink-50. The kit ships dark=950, so leaving the override off
-                // when (zinc + deep) keeps the stylesheet value and matches the export.
                 const darkShade = this.darkDepth || '950';
-                if (this.gray !== 'zinc') {
-                    const g = (n) => 'var(--color-' + this.gray + '-' + n + ')';
-                    this.shades.forEach((s) => el.style.setProperty('--color-ink-' + s, g(s)));
-                    el.style.setProperty('--color-bg', this.isDark ? g(darkShade) : g(50));
-                } else if (this.isDark && darkShade !== '950') {
-                    el.style.setProperty('--color-bg', 'var(--color-ink-' + darkShade + ')');
-                } else {
-                    el.style.removeProperty('--color-bg');
+                if (dirty(['gray', 'darkDepth'])) {
+                    this.shades.forEach((s) => el.style.removeProperty('--color-ink-' + s));
+                    if (this.gray !== 'zinc') {
+                        const g = (n) => 'var(--color-' + this.gray + '-' + n + ')';
+                        this.shades.forEach((s) => el.style.setProperty('--color-ink-' + s, g(s)));
+                        el.style.setProperty('--color-bg', this.isDark ? g(darkShade) : g(50));
+                    } else if (this.isDark && darkShade !== '950') {
+                        el.style.setProperty('--color-bg', 'var(--color-ink-' + darkShade + ')');
+                    } else {
+                        el.style.removeProperty('--color-bg');
+                    }
                 }
-                // Surface elevation: set --color-surface to the computed mix directly so the preview is
-                // correct even where the kit's --surface-level derivation isn't in the served CSS. The
-                // copied snippet uses the clean --surface-level token, which the kit derives.
-                const level = this.isDark ? this.surfaceDark : this.surfaceLight;
-                el.style.setProperty('--color-surface', 'color-mix(in oklab, var(--color-bg), white ' + level + '%)');
+                // Surface elevation follows bg — recompute when either the surface
+                // levels or the bg-driving groups changed.
+                if (dirty(['surfaceLight', 'surfaceDark', 'gray', 'darkDepth'])) {
+                    const level = this.isDark ? this.surfaceDark : this.surfaceLight;
+                    el.style.setProperty('--color-surface', 'color-mix(in oklab, var(--color-bg), white ' + level + '%)');
+                }
 
-                el.style.setProperty('--radius-control', this.radius);
-                el.style.setProperty('--radius-box', this.radiusBox);
+                if (dirty(['radius'])) el.style.setProperty('--radius-control', this.radius);
+                if (dirty(['radiusBox'])) el.style.setProperty('--radius-box', this.radiusBox);
                 // Button radius: 'default' tracks the control radius; 'full' makes pill buttons.
-                el.style.setProperty('--radius-button', this.buttonRadius === 'full' ? 'calc(infinity * 1px)' : 'var(--radius-control)');
-                el.style.setProperty('--focus-ring-width', this.focusRing);
-                el.style.setProperty('--shadow-input', this.inputShadow);
-                el.style.setProperty('--shadow-box', this.boxShadow);
+                if (dirty(['radius', 'buttonRadius'])) {
+                    el.style.setProperty('--radius-button', this.buttonRadius === 'full' ? 'calc(infinity * 1px)' : 'var(--radius-control)');
+                }
+                if (dirty(['focusRing'])) el.style.setProperty('--focus-ring-width', this.focusRing);
+                if (dirty(['inputShadow'])) el.style.setProperty('--shadow-input', this.inputShadow);
+                if (dirty(['boxShadow'])) el.style.setProperty('--shadow-box', this.boxShadow);
                 // Box-role border (cards): On → restore the gray (mode-aware) so it wins over a
                 // shadow-only default; Off → transparent. removeProperty can't beat the stylesheet.
-                el.style.setProperty('--color-card-border', this.borders ? (this.isDark ? 'var(--color-ink-700)' : 'var(--color-ink-200)') : 'transparent');
+                if (dirty(['borders'])) {
+                    el.style.setProperty('--color-card-border', this.borders ? (this.isDark ? 'var(--color-ink-700)' : 'var(--color-ink-200)') : 'transparent');
+                }
 
                 this.save();
             },
@@ -406,6 +437,8 @@ By default the working theme is saved to localStorage so it survives navigation 
                     const data = JSON.parse(raw);
                     if (!data || data.v !== this.persistVersion) return;  // ignore an incompatible/old blob
                     this.persistedKeys.forEach((k) => { if (k in data) this[k] = data[k]; });
+                    this._dirty = {};
+                    (data.dirty || []).forEach((k) => { this._dirty[k] = true; });
                     return true;
                 } catch (e) { /* storage unavailable / malformed — fall back to defaults */ }
                 return false;
@@ -414,7 +447,7 @@ By default the working theme is saved to localStorage so it survives navigation 
             save() {
                 if (!this.persist) return;
                 try {
-                    const data = { v: this.persistVersion };
+                    const data = { v: this.persistVersion, dirty: Object.keys(this._dirty) };
                     this.persistedKeys.forEach((k) => { data[k] = this[k]; });
                     localStorage.setItem(this.storageKey, JSON.stringify(data));
                 } catch (e) { /* storage unavailable / quota — preview still works in-page */ }
@@ -473,6 +506,8 @@ By default the working theme is saved to localStorage so it survives navigation 
                 // reset APPLIED the kit defaults — on an app with its own theme that
                 // meant reset == re-theme to teal/zinc.)
                 Object.assign(this, this.defaults);
+                this._dirty = {};
+                this._snapshot();
                 const el = document.documentElement;
                 ['--color-accent', '--color-accent-content', '--color-accent-foreground',
                  '--color-bg', '--color-surface', '--color-card-border',
@@ -485,7 +520,7 @@ By default the working theme is saved to localStorage so it survives navigation 
             },
 
             // True when any token differs from the kit defaults — drives the collapsed 'reset' link.
-            get isModified() { return Object.keys(this.defaults).some((k) => this[k] !== this.defaults[k]); },
+            get isModified() { return Object.keys(this._dirty).length > 0; },
 
             get css() {
                 // Every token here works on the no-build <link> path: accent AND the gray base both
