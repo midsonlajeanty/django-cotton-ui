@@ -6,6 +6,15 @@
     --color-accent-content: var(--color-ink-700);
     --color-accent-foreground: var(--color-white);
 
+    /* Component tokens declared in @theme (not just :root) so their named utilities
+       generate: text-muted, bg-surface, border-box-border, bg-input-bg, bg-accent-muted.
+       These are the light defaults; .dark overrides them in the @layer theme block below. */
+    --color-muted: var(--color-ink-500);           /* secondary text (text-muted): meta lines, descriptions, timestamps */
+    --color-box-border: var(--color-ink-200);      /* border for box-role surfaces: cards, dialogs, menus */
+    --color-accent-muted: var(--color-ink-900);    /* off-accent fill: :accent=false controls re-tone with the Ink control */
+    --color-surface: color-mix(in oklab, var(--color-bg), white var(--surface-level));  /* raised surfaces, derived from --color-bg + --surface-level */
+    --color-input-bg: transparent;                 /* form fields: border-defined in light; .dark lifts it */
+
     /* Radius is split by role, not by size, and kept in its own namespace so it never
        collides with Tailwind's --radius-md/-lg scale or your own rounded-* usage.
        Declared in @theme so the `rounded-control` / `rounded-box` utilities are generated. */
@@ -87,16 +96,9 @@
 @layer theme {
     :root {
         --color-bg: var(--color-ink-50);       /* page base */
-        /* Raised surfaces (cards, dialogs, menus) are derived from the page bg, lifted
-           toward white by --surface-level. Higher = more contrast off the page. Light
-           defaults to 100% (white); .dark uses a subtle lift. Set --color-surface
-           directly to opt out of the derivation. */
+        /* --surface-level drives the raised-surface derivation in @theme (--color-surface):
+           higher = more contrast off the page. Light is flat white; .dark lifts subtly. */
         --surface-level: 100%;
-        --color-surface: color-mix(in oklab, var(--color-bg), white var(--surface-level));
-        --color-input-bg: transparent;          /* form fields: border-defined in light; see .dark for the lift */
-        --color-box-border: var(--color-ink-200);  /* border for box-role surfaces (cards, dialogs, menus); set transparent for a shadow-only look. NOT inputs (see --radius-control). */
-        --color-accent-muted: var(--color-ink-900);    /* the off-accent fill: components with :accent=false use ink here, so they re-tone with the Ink control */
-        --color-muted: var(--color-ink-500);    /* secondary text (text-muted): meta lines, descriptions, timestamps; a step lighter on dark for contrast */
 
         --shadow-input: 0 1px 2px 0 rgb(0 0 0 / 0.05);
         --shadow-box: 0 1px 2px 0 rgb(0 0 0 / 0.05);
